@@ -1,0 +1,278 @@
+#!/usr/bin/env php
+<?php
+
+/*
+
+	program:	bennoconf
+
+	copyright:	INLINE Internet Online Dienste GmbH
+	
+	license:	GNU GPL v3 or any later version
+
+	contact:	info@inline.de
+
+	description:	create benno xml configuration file for a multitenant configuration
+
+*/
+
+function debug($var) {
+	print(">> ");
+	print_r($var);
+	print(" <<\n");
+}
+
+class MySimpleXMLElement {
+
+	function __construct($root_tag,$attrs=[]) { # static function
+		$this->sxe = new SimpleXMLElement("<$root_tag/>");
+		$this->path = "/";
+		$root = $this->sxe->xpath("/$root_tag")[0];
+		foreach($attrs as $attr => $attrVal)
+			$root->addAttribute($attr,$attrVal);
+	}
+
+	// dump element as xml without xml-declaration
+	function dump() {
+		$dom = dom_import_simplexml($this->sxe)->ownerDocument;
+		$dom->formatOutput = true;
+		echo $dom->saveXML($dom->documentElement);
+	}
+
+	// add a child element with attributes
+	function addChild($name,$base=NULL,$value=NULL,$attrs=[]) {
+		if($base=="" or $base=="/") {
+			# debug("Adding direct child: $container");
+			$target=$this->sxe;
+		} else {
+			# debug("Adding child: $container to $base");
+			$res = $this->xpath($base);
+			# $this->dump();
+			# debug($base);
+			# debug($res);
+			$target = $res[0];
+		}
+		# print("N: $name V: $value\n");
+		$child = $target->addChild($name,$value);
+		foreach($attrs as $attr => $attrVal)
+			$child->addAttribute($attr,$attrVal);
+		return $child;
+	}
+
+	// get a part from oneself by xpath-string
+	function xpath($query_string) {
+		return $this->sxe->xpath($query_string);
+	}
+
+	// recursively add a child element by a new path
+	function addElement($base="",$path,$value=NULL,$attrs=[]) {
+
+		if(preg_match("/([^\/]+)\/(.*)/",$path,$matches)) {
+			$container 	= $matches[1];
+			$trail 		= $matches[2];
+			# debug("B0: $base");
+			$base		= $base==""?"/":$base;
+			$res 		= $this->xpath($base."/".$container);
+			# xml_dump($this->sxe);
+			# debug("S0: ".$base."/".$container);
+			# print_r($res);
+
+			if(count($res) == 0) {
+				$this->addChild($container,$base);
+			}
+			# debug("B1: $base");
+			return $this->addElement(($base=="/"?"/":"$base/").$container,$trail,$value,$attrs);
+		} else {
+			return $this->addChild($path,$base,$value,$attrs);
+		}
+	}
+
+	// static method
+	function merge(&$base,$add) {
+	    if ( $add->count() != 0 )
+		$new = $base->addChild($add->getName());
+	    else
+		$new = $base->addChild($add->getName(), $add);
+	    foreach ($add->attributes() as $a => $b)
+	    {
+		$new->addAttribute($a, $b);
+	    }
+	    if ( $add->count() != 0 )
+	    {
+		foreach ($add->children() as $child)
+		{
+		    $this->merge($new, $child);
+		}
+	    }
+	} 
+
+	// merge additional XML-Tree into a path of the own object
+	function insert($path,$obj) {
+		if ($obj) {
+	            $existing  = $this->xpath($path);
+		    $connector = ($existing and count($existing>1))?$existing[0]:$this->addElement("",$path);
+		    $this->merge($connector,$obj->sxe);
+		}
+	}
+}
+
+Class BennoXML {
+
+	function __construct($CONFIG) {
+
+	$this->servername 	= $CONFIG["servername"];
+	$this->basedir		= $CONFIG["base_dir"];	
+	$this->baseconfig($this->servername,$this->inboxDir());
+	$this->xml->insert("/benno",$this->createRestConfig($CONFIG["rest_config_file"],$CONFIG["rest_cache_ttl"],$CONFIG["rest_password"]));
+	}
+
+
+	function dump() {
+		$this->xml->dump();
+	}
+
+	function inboxDir() {
+		 return $this->basedir."/inboxes/".$this->servername;
+	}
+
+	function baseconfig($server,$inbox_dir) {
+
+		$base = "/benno/configuredarchives/containerarchives";
+		$mfbase	= "$base/directorywatcher/mailfile";
+
+		$xml = new MySimpleXMLElement("benno");
+		
+		$xml->addElement("","$base/identifier",$this->servername);
+		$xml->addElement("","$base/conditions/all");
+		$xml->addElement("","$base/directorywatcher","",[ "directory" => $this->inboxDir(), "pattern" => ".*.eml"]);
+		$xml->addElement("","$mfbase/senderheaders/name","X-REAL-MAILFROM");
+		$xml->addElement("","$mfbase/senderheaders/name","RECIPIENT-FROM");
+		$xml->addElement("","$mfbase/senderheaders/name","From");
+		$xml->addElement("","$mfbase/recipientheaders/name","X-REAL-RCPTTO");
+		$xml->addElement("","$mfbase/recipientheaders/name","RECIPIENT-TO");
+		$xml->addElement("","$mfbase/recipientheaders/name","BCC");
+		$xml->addElement("","$mfbase/recipientheaders/name","To");
+		$xml->addElement("","$mfbase/recipientheaders/name","Cc");
+		$xml->addElement("","$mfbase/secretheaders/name","RECIPIENT-TO");
+		$xml->addElement("","$mfbase/secretheaders/name","RECIPIENT-FROM");
+		$xml->addElement("","$mfbase/secretheaders/name","BCC");
+		$xml->addElement("","$mfbase/secretheaders/name","X-REAL-MAILFROM");
+		$xml->addElement("","$mfbase/secretheaders/name","X-REAL-RCPTTO");
+		$this->xml = $xml;
+	}
+
+	function createTenant($tenant_name,$tenant_domains) {
+		$base 		= "configuredContainers";
+		$simple		= "/$base/simpleContainer";
+		
+		$xml = new MySimpleXMLElement("configuredContainers");
+		$xml->addElement("","$simple");
+		$xml->addElement("","$simple/identifier",$tenant_name);
+
+		$or = new MySimpleXMLElement("or");
+		foreach($tenant_domains as $tenant_domain) {
+			$or->addElement("","or/domain",$tenant_domain, 
+				["sender"=>"true","recipent"=>"true","from"=>"true","to"=>"true","cc"=>"true","bcc"=>"true"]);
+		}
+		$xml->insert("$simple/conditions",$or);
+		
+		return $xml;
+	}
+
+	function addTenant($tenant_name,$tenant_domains) {
+		$index_dir 	= $this->basedir."/archives/".$this->servername."/$tenant_name/index";
+		$box_dir	= $this->basedir."/archives/".$this->servername."/$tenant_name/repo";
+
+		$tenant 	= $this->createTenant($tenant_name,$tenant_domains);
+		$index     	= $this->createIndex($index_dir);
+		$box	   	= $this->createBox($this->basedir."/archives/".$this->servername."/$tenant_name/repo");
+
+		$tenant->insert("/configuredContainers/simpleContainer",$index);
+		$tenant->insert("/configuredContainers/simpleContainer",$box);
+
+        	$this->xml->insert("/benno/configuredarchives/containerarchives",$tenant);
+
+	}
+
+	function createIndex($index_dir) {
+		$index = new MySimpleXMLElement("luceneindex",["version"=>"LUCENE_36"]);
+		$index->addElement("","/luceneindex/directory",$index_dir);
+		return $index;
+	}
+
+	function createBox($box_dir) {
+		$boxtype	= "yearlyfsbox";
+		$base		= "/$boxtype/fshexbennobox";
+		$box 		= new MySimpleXMLElement($boxtype);
+		$box->addElement("","/$base/monthlyjournal"			);
+		$box->addElement("","/$base/directory"		, $box_dir	);
+		$box->addElement("","/$base/subdirs"		, "3"		);
+		$box->addElement("","/$base/dirlength"		, "2"		);
+		$box->addElement("","/$base/compression"	, "gzip"	);
+
+		return $box;
+	}
+
+	function createRestConfig($jetty_config_file,$cache_ttl,$rest_password) {
+
+		$rest 		= new MySimpleXMLElement("bennoRest");
+		$rest->addElement("","/bennoRest/jettyconfig"	, $jetty_config_file	);
+		$rest->addElement("","/bennoRest/sharedSecret"	, $rest_password	);
+		$rest->addElement("","/bennoRest/indexCacheTTL"	, $cache_ttl		);
+		return $rest;
+	}
+}
+
+function init() {
+
+	global $DEFAULTS, $C;
+
+	// create configuration dir if not existing
+	if(!is_dir($DEFAULTS["bennoconf_dir"])) 
+		mkdir($DEFAULTS["bennoconf_dir"],NULL,true);
+
+	// create config file with defaults if not existing or load values from existing file
+	$configfile = $DEFAULTS["bennoconf_dir"]."/".$DEFAULTS["bennoconf_file"];
+	if(!file_exists($configfile)) {
+		$C = $DEFAULTS;
+		$C["rest_password"] = $C["rest_password"](); # This is a function which needs to be replaced with its value
+	} else {
+		$C = json_decode(file_get_contents($configfile),true);
+	}
+}
+
+function finalize() {
+
+	global $DEFAULTS, $C;
+
+	// write json config at end of program
+	$configfile = $DEFAULTS["bennoconf_dir"]."/".$DEFAULTS["bennoconf_file"];
+	file_put_contents($configfile,json_encode($C,JSON_PRETTY_PRINT));
+
+}
+
+# ----------------- main program start --------------------
+
+$C   = NULL;												# global Configuration Hash
+
+$DEFAULTS = [
+	"bennoconf_dir"		=> "/etc/benno/bennoconf",						# Configuration directory for bennoconf
+	"bennoconf_file"	=> "bennoconf.json",							# Main Config File of bennoconf
+	"base_dir"		=> "/srv/benno",							# base directory for data
+	"servername"		=> "myserver.domain.com",						# at best an fqdn of this benno server
+	"rest_config_file"	=> "/etc/benno/jetty.xml",						# benno rest configuration file
+	"rest_password"		=> function() { return substr(hash('sha512',openssl_random_pseudo_bytes(20)),0,60); },		# complex rest password
+	"rest_cache_ttl"	=> 300000
+];
+
+// load config or generate default
+init();	
+
+$bennoXML = new BennoXML($C);
+$bennoXML->addTenant("MyCompany",["meinedomain.de","mydomain.com"]);
+$bennoXML->addTenant("AnotherCompany",["meinezweitedomain.de","bla.com"]);
+$bennoXML->dump();
+
+// write config
+finalize();
+
+?>
