@@ -10,3 +10,9 @@ Tenants.
 
 It creates a configuration file /etc/benno/bennoconf/bennoconf.json if
 it does not exist which can be adapted once it's created.
+
+## Requirements
+
+PHP, Version >= 5.6 (Lower version probably running without problems)
+
+PHP-Libraries: xml, json
