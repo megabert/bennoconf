@@ -272,7 +272,7 @@ $bennoXML->addTenant("MyCompany",["meinedomain.de","mydomain.com"]);
 $bennoXML->addTenant("AnotherCompany",["meinezweitedomain.de","bla.com"]);
 $bennoXML->dump();
 
-// write config
+// write JSON config 
 finalize();
 
 ?>
