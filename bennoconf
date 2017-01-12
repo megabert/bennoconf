@@ -38,7 +38,7 @@ class MySimpleXMLElement {
 		echo $dom->saveXML($dom->documentElement);
 	}
 
-	// add a child element with attributes
+	// add a child element with attributes at a defined path in the current object
 	function addChild($name,$base=NULL,$value=NULL,$attrs=[]) {
 		if($base=="" or $base=="/") {
 			# debug("Adding direct child: $container");
@@ -86,7 +86,7 @@ class MySimpleXMLElement {
 		}
 	}
 
-	// static method
+	// static method to merge a second SimpleXMLElement into the first
 	function merge(&$base,$add) {
 	    if ( $add->count() != 0 )
 		$new = $base->addChild($add->getName());
