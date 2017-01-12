@@ -34,7 +34,7 @@ Add a Tenant/Client:
 $bennoXML->addTenant("MyCompany",["meinedomain.de","mydomain.com"]);
 ```
 
-Add a Tenant/Client:
+Add another Tenant/Client:
 ```
 $bennoXML->addTenant("AnotherCompany",["meinezweitedomain.de","bla.com"]);
 ```
