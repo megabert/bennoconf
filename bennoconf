@@ -31,7 +31,7 @@ class MySimpleXMLElement {
 			$root->addAttribute($attr,$attrVal);
 	}
 
-	// dump element as xml without xml-declaration
+	// dump element as xml without xml-declaration, pretty formatted
 	function dump() {
 		$dom = dom_import_simplexml($this->sxe)->ownerDocument;
 		$dom->formatOutput = true;
