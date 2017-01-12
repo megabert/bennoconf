@@ -1,6 +1,6 @@
 # bennoconf
 
-Create XML Configuration for "Benno Mailarchiv" (www.benno-mailarchiv.de)
+Create XML Configuration for "Benno Mailarchiv" (www.benno-mailarchiv.de, german site)
 
 This script creates a benno.xml configuration based on the few needed
 parameters. It is a base for create more complex configurations with more 
