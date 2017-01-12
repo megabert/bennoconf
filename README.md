@@ -35,8 +35,11 @@ $bennoXML->addTenant("MyCompany",["meinedomain.de","mydomain.com"]);
 ```
 
 Add a Tenant/Client:
+```
 $bennoXML->addTenant("AnotherCompany",["meinezweitedomain.de","bla.com"]);
+```
 
 Print the XML-Config to Terminal:
+```
 $bennoXML->dump();
 ```
