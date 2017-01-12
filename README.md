@@ -19,4 +19,4 @@ PHP-Libraries: xml, json
 
 ## State
 
-Code is //Usable//
+Code is *Usable*
