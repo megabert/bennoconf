@@ -16,3 +16,7 @@ it does not exist which can be adapted once it's created.
 PHP, Version >= 5.6 (Lower version probably running without problems)
 
 PHP-Libraries: xml, json
+
+## State
+
+Code is /Usable/
