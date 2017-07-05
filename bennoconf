@@ -136,7 +136,7 @@ Class BennoXML {
 
 	function baseconfig($server,$inbox_dir) {
 
-		$base = "/benno/configuredarchives/containerarchives";
+		$base = "/benno/configuredarchives/containerarchive";
 		$mfbase	= "$base/directorywatcher/mailfile";
 
 		$xml = new MySimpleXMLElement("benno");
@@ -161,17 +161,17 @@ Class BennoXML {
 	}
 
 	function createTenant($tenant_name,$tenant_domains) {
-		$base 		= "configuredContainers";
-		$simple		= "/$base/simpleContainer";
+		$base 		= "configuredcontainers";
+		$simple		= "/$base/simplecontainer";
 		
-		$xml = new MySimpleXMLElement("configuredContainers");
+		$xml = new MySimpleXMLElement("configuredcontainers");
 		$xml->addElement("","$simple");
 		$xml->addElement("","$simple/identifier",$tenant_name);
 
 		$or = new MySimpleXMLElement("or");
 		foreach($tenant_domains as $tenant_domain) {
 			$or->addElement("","or/domain",$tenant_domain, 
-				["sender"=>"true","recipent"=>"true","from"=>"true","to"=>"true","cc"=>"true","bcc"=>"true"]);
+				["sender"=>"true","recipent"=>"true","from"=>"true","to"=>"true","cc"=>"true"]);
 		}
 		$xml->insert("$simple/conditions",$or);
 		
@@ -186,10 +186,10 @@ Class BennoXML {
 		$index     	= $this->createIndex($index_dir);
 		$box	   	= $this->createBox($this->basedir."/archives/".$this->servername."/$tenant_name/repo");
 
-		$tenant->insert("/configuredContainers/simpleContainer",$index);
-		$tenant->insert("/configuredContainers/simpleContainer",$box);
+		$tenant->insert("/configuredcontainers/simplecontainer",$index);
+		$tenant->insert("/configuredcontainers/simplecontainer",$box);
 
-        	$this->xml->insert("/benno/configuredarchives/containerarchives",$tenant);
+        	$this->xml->insert("/benno/configuredarchives/containerarchive",$tenant);
 
 	}
 
@@ -203,7 +203,7 @@ Class BennoXML {
 		$boxtype	= "yearlyfsbox";
 		$base		= "/$boxtype/fshexbennobox";
 		$box 		= new MySimpleXMLElement($boxtype);
-		$box->addElement("","/$base/monthlyjournal"			);
+		$box->addElement("","/$base/monthlyfsjournal"			);
 		$box->addElement("","/$base/directory"		, $box_dir	);
 		$box->addElement("","/$base/subdirs"		, "3"		);
 		$box->addElement("","/$base/dirlength"		, "2"		);
@@ -215,7 +215,7 @@ Class BennoXML {
 	function createRestConfig($jetty_config_file,$cache_ttl,$rest_password) {
 
 		$rest 		= new MySimpleXMLElement("bennoRest");
-		$rest->addElement("","/bennoRest/jettyconfig"	, $jetty_config_file	);
+		$rest->addElement("","/bennoRest/jettyConfig"	, $jetty_config_file	);
 		$rest->addElement("","/bennoRest/sharedSecret"	, $rest_password	);
 		$rest->addElement("","/bennoRest/indexCacheTTL"	, $cache_ttl		);
 		return $rest;
